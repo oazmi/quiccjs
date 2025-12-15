@@ -1,0 +1,57 @@
+{
+	"name": "@oazmi/quiccjs",
+	"version": "0.1.0",
+	"description": "[WIP] go bindings for quickjs + a subset of WHATWG specs for creating small native applications in javascript or typescript.",
+	"author": "Omar Azmi",
+	"license": "lulz plz don't steal it yet.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/oazmi/quiccjs.git"
+	},
+	"bugs": {
+		"url": "https://github.com/oazmi/quiccjs/issues"
+	},
+	"exclude": [
+		"./dist/",
+		"./docs/",
+		"./npm/"
+	],
+	"exports": {},
+	"publish": {
+		"exclude": [
+			"./.vscode/",
+			"./.github/",
+			"./examples/",
+			"./test/",
+			"./clean.ts"
+		]
+	},
+	"test": {
+		"include": [
+			"./test/",
+			"./src/"
+		]
+	},
+	"fmt": {
+		"useTabs": true,
+		"semiColons": false,
+		"singleQuote": false,
+		"lineWidth": 800,
+		"proseWrap": "preserve",
+		"include": [
+			"./cmd/",
+			"./pkg/",
+			"./src/",
+			"./test/",
+			"./**/*.md",
+			"./**/*.json"
+		]
+	},
+	"compilerOptions": {
+		"types": [],
+		"lib": ["esnext"],
+		"strict": true
+	},
+	"tasks": {
+	}
+}
