@@ -1,0 +1,19 @@
+name: "force update quickjs"
+description: "force update quickjs, precompile it, then commit it to the `prebuilt` branch."
+
+on: ["workflow_dispatch"]
+
+permissions:
+  contents: write
+
+jobs:
+  force-update:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: "force precompile quickjs and commit if changed"
+        uses: "./.github/actions/compile-quickjs"

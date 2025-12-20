@@ -44,7 +44,9 @@
 			"./src/",
 			"./test/",
 			"./**/*.md",
-			"./**/*.json"
+			"./**/*.json",
+			"./**/*.yml",
+			"./**/*.yaml"
 		]
 	},
 	"compilerOptions": {

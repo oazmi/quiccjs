@@ -1,0 +1,78 @@
+name: "precompile quickjs and commit"
+description: "precompile `libquickjs.a` as a static library, then commit it to the `prebuilt` branch."
+
+runs:
+  using: "composite"
+  steps:
+    # I don't want to show up as an author in the commit, since that will inflate my github contribution grid.
+    - name: configure git
+      shell: bash
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+
+    - name: install crossplatform build tools
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y mingw-w64 clang llvm make build-essential
+
+    - name: update submodule
+      shell: bash
+      run: |
+        cd "./vendor/quickjs/"
+        git fetch origin
+        git checkout origin/HEAD
+
+    # linux compilation
+    - name: compile libquickjs.a for linux_amd64
+      shell: bash
+      run: |
+        cd "./vendor/quickjs/"
+        make clean
+        make CC="gcc" libquickjs.a
+        mkdir -p "../quickjs_lib/linux_amd64/"
+        cp "./libquickjs.a" "../quickjs_lib/linux_amd64/libquickjs.a"
+
+    # windows compilation
+    - name: compile libquickjs.a for windows_amd64
+      shell: bash
+      run: |
+        cd "./vendor/quickjs/"
+        make clean
+        make CC="x86_64-w64-mingw32-gcc" libquickjs.a
+        mkdir -p "../quickjs_lib/windows_amd64/"
+        cp "./libquickjs.a" "../quickjs_lib/windows_amd64/libquickjs.a"
+
+    # darwin compilation
+    - name: compile libquickjs.a for darwin_amd64
+      shell: bash
+      run: |
+        cd "./vendor/quickjs/"
+        make clean
+        make CC="clang -target x86_64-apple-darwin" libquickjs.a
+        mkdir -p "../quickjs_lib/darwin_amd64/"
+        cp "./libquickjs.a" "../quickjs_lib/darwin_amd64/libquickjs.a"
+
+    # freebsd compilation
+    - name: compile libquickjs.a for freebsd_amd64
+      shell: bash
+      run: |
+        cd "./vendor/quickjs/"
+        make clean
+        make CC="clang -target x86_64-unknown-freebsd13.2" libquickjs.a
+        mkdir -p "../quickjs_lib/freebsd_amd64/"
+        cp "./libquickjs.a" "../quickjs_lib/freebsd_amd64/libquickjs.a"
+
+    - name: commit if changed
+      shell: bash
+      run: |
+        if git status --porcelain | grep .; then
+          git switch prebuilt || git switch -c prebuilt
+          git add "./vendor/quickjs/" "./vendor/quickjs_lib/linux_amd64/libquickjs.a"
+          git commit -m "- [gh-action] in `/vendor/quickjs/` and `/vendor/quickjs_lib/`, update submodule and rebuild static library."
+          git push origin prebuilt
+          echo "changes to committed and pushed to `prebuilt` branch."
+        else
+          echo "no changes to commit."
+        fi
