@@ -22,5 +22,7 @@
 	"deno.enable": true,
 	"deno.disablePaths": [
 		"**/package.json"
-	]
+	],
+	"C_Cpp.formatting": "clangFormat",
+	"C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: LLVM, UseTab: Always, IndentWidth: 4, TabWidth: 4, BreakBeforeBraces: Attach, AllowShortIfStatementsOnASingleLine: true, AllowShortBlocksOnASingleLine: Empty, IndentCaseLabels: false, ColumnLimit: 0, AccessModifierOffset: -4, NamespaceIndentation: All, FixNamespaceComments: false, PointerAlignment: Left, AlignAfterOpenBracket: BlockIndent }"
 }
