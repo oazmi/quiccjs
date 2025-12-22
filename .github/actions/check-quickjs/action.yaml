@@ -8,9 +8,9 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: check upstream diff
-      id: check
-      shell: bash
+    - name: "check upstream diff"
+      id: "check"
+      shell: "bash"
       run: |
         cd "./vendor/quickjs/"
 

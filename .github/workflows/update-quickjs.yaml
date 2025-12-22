@@ -1,5 +1,5 @@
 name: "update quickjs"
-description: "update quickjs, precompile it, then commit it to the `prebuilt` branch."
+description: "periodically update quickjs, precompile it, then commit it to the `prebuilt` branch."
 
 on:
   schedule:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: "write"
 
 jobs:
   check-and-update:
@@ -21,9 +21,9 @@ jobs:
           fetch-depth: 0
 
       - name: "detect quickjs submodule update"
-        id: detect
+        id: "detect"
         uses: "./.github/actions/check-quickjs"
 
       - name: "precompile quickjs and commit if changed"
         if: "steps.detect.outputs.changed == 'true'"
-        uses: "./.github/actions/compile-quickjs"
+        uses: "./.github/workflows/force-update-quickjs.yaml"

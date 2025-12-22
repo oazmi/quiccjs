@@ -1,13 +1,44 @@
 name: "force update quickjs"
 description: "force update quickjs, precompile it, then commit it to the `prebuilt` branch."
 
-on: ["workflow_dispatch"]
+on: ["workflow_dispatch", "workflow_call"]
 
 permissions:
   contents: write
 
 jobs:
-  force-update:
+  build:
+    name: "build static library for all platforms"
+    strategy:
+      matrix:
+        include:
+          - runs-on: "ubuntu-latest"
+            host-platform: "linux_amd64"
+          - runs-on: "windows-latest"
+            host-platform: "windows_amd64"
+          - runs-on: "macos-latest"
+            host-platform: "darwin_amd64"
+    runs-on: ${{ matrix.runs-on }}
+    outputs:
+      artifact-url-linux: ${{ steps.compile-linux.outputs.artifact-url }}
+      artifact-url-windows: ${{ steps.compile-windows.outputs.artifact-url }}
+      artifact-url-darwin: ${{ steps.compile-darwin.outputs.artifact-url }}
+    steps:
+      - uses: "actions/checkout@v4"
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      # run the composite action once per job, picked by the matrix entry.
+      - name: "compile quickjs static library"
+        id: "compile"
+        uses: "./.github/actions/compile-quickjs"
+        with:
+          host-platform: ${{ matrix.host-platform }}
+
+  aggregate:
+    name: "aggregate the artifacts, then commit."
+    needs: "build"
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v4"
@@ -15,5 +46,28 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: "force precompile quickjs and commit if changed"
-        uses: "./.github/actions/compile-quickjs"
+      - name: "download all of the artifacts"
+        uses: "actions/download-artifact@v7"
+        with:
+          # the platform names (i.e. `linux_amd64`, etc...) will be used as subfolders, under which `libquickjs.a` will be placed.
+          path: "./vendor/quickjs_lib/"
+
+      # I don't want to show up as an author in the commit, since that will inflate my github contribution grid.
+      - name: "configure git"
+        shell: "bash"
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      - name: "commit if changed"
+        shell: "bash"
+        run: |
+          if git status --porcelain | grep .; then
+            git switch prebuilt || git switch -c prebuilt
+            git add "./vendor/quickjs/" "./vendor/quickjs_lib/"
+            git commit -m "- [gh-action] in ``/vendor/quickjs/`` and ``/vendor/quickjs_lib/``, update submodule and rebuild static library."
+            git push origin prebuilt
+            echo "changes to committed and pushed to ``prebuilt`` branch."
+          else
+            echo "no changes to commit."
+          fi
