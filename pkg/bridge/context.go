@@ -10,37 +10,9 @@ import (
 	unsafe "unsafe"
 )
 
-type Runtime struct {
-	ref *C.JSRuntime
-}
-
 type Context struct {
 	rt  *Runtime
 	ref *C.JSContext
-}
-
-type Value struct {
-	ctx *Context
-	ref C.JSValue
-}
-
-func NewRuntime() *Runtime {
-	rt := &Runtime{
-		ref: C.JS_NewRuntime(),
-	}
-	if rt.ref == nil {
-		return nil
-	}
-	// TODO: I'm unsure if we should be cleaning it up automatically, or if it should be the end user's responsibility.
-	runtime.AddCleanup(rt, (*Runtime).Free, nil)
-	return rt
-}
-
-func (rt *Runtime) Free() {
-	if rt.ref != nil {
-		C.JS_FreeRuntime(rt.ref)
-		rt.ref = nil
-	}
 }
 
 func (rt *Runtime) NewContext() *Context {
@@ -101,27 +73,4 @@ func (ctx *Context) evalBase(code string, eval_type js_EVAL_TYPE) (*Value, error
 	}
 	val := Value{ref: result, ctx: ctx}
 	return &val, nil
-}
-
-// returns the `int64` value of the value.
-func (val *Value) ToInt64() int64 {
-	cval := C.int64_t(55)
-	println(&cval, cval)
-	println(C.JS_ToInt64(val.ctx.ref, &cval, val.ref))
-	println(&cval, cval)
-	return int64(cval)
-}
-
-// returns the `string` representation of a value.
-func (val *Value) ToString() string {
-	ptr := C.JS_ToCString(val.ctx.ref, val.ref)
-	defer C.JS_FreeCString(val.ctx.ref, ptr)
-	return C.GoString(ptr)
-}
-
-func (v *Value) Free() {
-	if v.ctx == nil {
-		return // no context or undefined value, nothing to free
-	}
-	C.JS_FreeValue(v.ctx.ref, v.ref)
 }
