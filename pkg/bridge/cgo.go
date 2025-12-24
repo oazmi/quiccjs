@@ -1,8 +1,11 @@
 // this file contains the cgo/gcc compilation flags for the c-source code of quickjs.
 // there are two modes available: 1) the default debug mode, 2) the release mode.
 // 1) in the debug mode, your binaries will use the precompiled static quickjs library ("libquickjs.a") for quick builds.
-// 2) in the release mode, activated using `go build -tags="quickcc_release" ...`,
+// 2) in the release mode, activated using `go build -tags="quiccjs_release" ...`,
 //    quickjs will be built from the c-source, leading to a better crossplatform compatibility.
+//
+// to get smaller binaries when using `go build`, add the `-ldflags="-s -w"` flag to strip away debug symbols and get a much smaller binary.
+// example: `go build -tags="quiccjs_release" -ldflags="-s -w" "./cmd/main.go" -o "./out/main.exe"`
 
 package bridge
 
@@ -10,13 +13,13 @@ package bridge
 #cgo CFLAGS: -I"${SRCDIR}/"
 
 // only use the "-O2" optimization flag when building in release mode.
-#cgo quickcc_release CFLAGS: -O2
+#cgo quiccjs_release CFLAGS: -O2
 
 // only link to the pre-compiled static library when not in release mode.
-#cgo (!quickcc_release && linux   && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/linux_amd64/"   -lquickjs
-#cgo (!quickcc_release && windows && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/windows_amd64/" -lquickjs
-#cgo (!quickcc_release && darwin  && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/darwin_amd64/"  -lquickjs
-#cgo (!quickcc_release && freebsd && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/freebsd_amd64/" -lquickjs
+#cgo (!quiccjs_release && linux   && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/linux_amd64/"   -lquickjs
+#cgo (!quiccjs_release && windows && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/windows_amd64/" -lquickjs
+#cgo (!quiccjs_release && darwin  && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/darwin_amd64/"  -lquickjs
+#cgo (!quiccjs_release && freebsd && amd64) LDFLAGS: -L"${SRCDIR}/../../vendor/quickjs_lib/freebsd_amd64/" -lquickjs
 
 // compile-time safety checks.
 #cgo !windows CFLAGS: -Wall -Wno-array-bounds -Wno-format-truncation -Wno-infinite-recursion

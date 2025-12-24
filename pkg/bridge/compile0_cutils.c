@@ -1,2 +1,2 @@
-//go:build quickcc_release
+//go:build quiccjs_release
 #include "./../../vendor/quickjs/cutils.c"

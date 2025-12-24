@@ -14,6 +14,8 @@ permissions:
 jobs:
   check-and-update:
     runs-on: "ubuntu-latest"
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
     steps:
       - uses: "actions/checkout@v4"
         with:
@@ -23,7 +25,9 @@ jobs:
       - name: "detect quickjs submodule update"
         id: "detect"
         uses: "./.github/actions/check-quickjs"
-
-      - name: "precompile quickjs and commit if changed"
-        if: "steps.detect.outputs.changed == 'true'"
-        uses: "./.github/workflows/force-update-quickjs.yaml"
+  
+  force-update:
+    # precompile quickjs and commit if changed
+    needs: "check-for-update"
+    if: "needs.check-for-update.outputs.changed == 'true'"
+    uses: "./.github/workflows/force-update-quickjs.yaml"
