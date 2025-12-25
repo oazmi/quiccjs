@@ -45,13 +45,36 @@ type Value struct {
 	ref C.JSValue
 }
 
+// decrements the reference count of a javascript object.
+//
+// once its reference count drops to `0`, the object's memory will be cleared and its child objects
+// (i.e. js-properties) will have their reference counting decremented by one as well.
+//
+// to increment the reference count, use the [Value.Dupe] method.
 func (val *Value) Free() {
-	// a memory freeing operation can only apply when a context is present.
+	// a memory freeing operation can only apply when a context and value is present.
 	// when it isn't, there's, nothing to free.
-	if val.ctx == nil {
+	if val == nil || val.ctx == nil {
 		return
 	}
 	C.JS_FreeValue(val.ctx.ref, val.ref)
+}
+
+// increments the reference count of a javascript object and duplicates its [Value] wrapper.
+//
+// this operation should be performed _not_ when an ownership transfer is happening (such as via the [Value.Set] method),
+// but rather be performed when the ownership of a js-value is being _duplicated_ (i.e. being co-owned by two or more scopes/objects).
+//
+// it is quite rare for this method to be used outside of the internal library logic,
+// so be sure that your logic is sound if you're using this method.
+//
+// to decrement the reference count, use the [Value.Free] method.
+func (val *Value) Dupe() *Value {
+	// the operation only takes place on non-nil values and contexts.
+	if val == nil || val.ctx == nil {
+		return nil
+	}
+	return &Value{ctx: val.ctx, ref: C.JS_DupValue(val.ctx.ref, val.ref)}
 }
 
 // get the [Context] of the value.
@@ -84,6 +107,8 @@ func (val *Value) IsConstructor() bool {
 // create a new javascript string from a go-string.
 //
 // do note that the string can contain null characters (i.e. `"\x00"`) without issues.
+//
+// @should-free
 func (ctx *Context) NewString(str string) *Value {
 	cstr_len := C.size_t(len(str))
 	// copy and allocate a new string on the c-heap.
@@ -188,21 +213,21 @@ func (ctx *Context) NewInt64(value int64) *Value {
 
 // create a new javascript `bigint` value.
 //
-// TODO UNSURE: note that it does not need to be freed afterwards.
+// @should-free
 func (ctx *Context) NewBigInt64(value int64) *Value {
 	return &Value{ctx: ctx, ref: C.JS_NewBigInt64(ctx.ref, C.int64_t(value))}
 }
 
 // create a new javascript `bigint` value.
 //
-// TODO UNSURE: note that it does not need to be freed afterwards.
+// @should-free
 func (ctx *Context) NewBigUint64(value uint64) *Value {
 	return &Value{ctx: ctx, ref: C.JS_NewBigUint64(ctx.ref, C.uint64_t(value))}
 }
 
 // create a new javascript `bigint` value from go's [math_big.Int].
 //
-// TODO UNSURE: note that it does not need to be freed afterwards.
+// @should-free
 func (ctx *Context) NewBigInt(value *math_big.Int) *Value {
 	js_val, err := ctx.Eval(value.Text(10) + "n")
 	if err != nil {
