@@ -127,7 +127,7 @@ func (val *Value) ToString() string {
 	var cstr_len C.size_t
 	// the `JS_ToCStringLen` function returns a c-heap pointer to the string, in addition to also writing the byte-length of the string into the `cstr_len` variable.
 	cstr_ptr := C.JS_ToCStringLen(val.ctx.ref, &cstr_len, val.ref)
-	// we should also always free any string (decrement rc) allocated by quickjs, once it has been converted.
+	// since the string that was created was by quickjs's allocator, it should be freed via its allocator as well, instead of `C.free` from the `<stdlib.h>`.
 	defer C.JS_FreeCString(val.ctx.ref, cstr_ptr)
 	// the reason for using `GoStringN` instead of `GoString` is that the returned string may contain null character, which we would want to include.
 	// however, `GoString` stops reading at the first null character as that's what terminates a proper c-string.

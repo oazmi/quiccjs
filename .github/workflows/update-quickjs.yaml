@@ -12,7 +12,7 @@ permissions:
   contents: "write"
 
 jobs:
-  check-and-update:
+  check-for-update:
     runs-on: "ubuntu-latest"
     outputs:
       changed: ${{ steps.detect.outputs.changed }}
