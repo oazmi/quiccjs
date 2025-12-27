@@ -60,6 +60,15 @@ func (val *Value) Free() {
 	C.JS_FreeValue(val.ctx.ref, val.ref)
 }
 
+// decrements the reference count of a javascript object _when_ its [Context] exits/frees up (i.e. when [Context.Free] is called).
+//
+// this is opposed to freeing up the value _immediately_ via [Value.Free].
+// it is intended for long lived objects, such as polyfills (like `fetch`, `TextEncoder`, etc...),
+// that should be freed upon the context's destruction.
+func (val *Value) FreeOnExit() {
+	val.ctx.freeUpList = append(val.ctx.freeUpList, val)
+}
+
 // increments the reference count of a javascript object and duplicates its [Value] wrapper.
 //
 // this operation should be performed _not_ when an ownership transfer is happening (such as via the [Value.Set] method),
@@ -100,6 +109,17 @@ func (val *Value) IsFunction() bool      { return val != nil && C.JS_IsFunction(
 func (val *Value) IsConstructor() bool {
 	// bloody gofmt won't let me place it in a single line.
 	return val != nil && C.JS_IsConstructor(val.ctx.ref, val.ref) == 1
+}
+
+//------     MISCELLANEOUS     ------//
+
+// get the `globalThis` javascript object.
+//
+// > [!important]
+// > do **NOT** free the returned `globalThis` object, as it is internally cached,
+// > and always has its reference count set to `1` throughout the execution of your program.
+func (ctx *Context) GetGlobalThis() *Value {
+	return ctx.valueCache.globalThis
 }
 
 //------        STRINGS        ------//
