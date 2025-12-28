@@ -21,11 +21,16 @@ type Context struct {
 type contextValueCache struct {
 	// miscellaneous
 	globalThis *Value
+	symbol     *Value
+	promise    *Value
 	date       *Value
+	weakRef    *Value
 	// collections
 	array   *Value
 	hashMap *Value
 	hashSet *Value
+	weakMap *Value
+	weakSet *Value
 	// typed arrays and buffers
 	arrayBuffer       *Value
 	uint8Array        *Value
@@ -84,10 +89,17 @@ func (ctx *Context) injectValueCache() {
 		}
 		panic(fmt.Sprintf(`[Context.injectValueCache]: missing a global class from the js-context: "%s".`, object_name))
 	}
+	// miscellaneous
+	ctx.valueCache.symbol = get_obj("Symbol")
+	ctx.valueCache.promise = get_obj("Promise")
+	ctx.valueCache.date = get_obj("Date")
+	ctx.valueCache.weakRef = get_obj("WeakRef")
 	// collections
 	ctx.valueCache.array = get_obj("Array")
 	ctx.valueCache.hashMap = get_obj("Map")
 	ctx.valueCache.hashSet = get_obj("Set")
+	ctx.valueCache.weakMap = get_obj("WeakMap")
+	ctx.valueCache.weakSet = get_obj("WeakSet")
 	// typed arrays and buffers
 	ctx.valueCache.arrayBuffer = get_obj("ArrayBuffer")
 	ctx.valueCache.uint8Array = get_obj("Uint8Array")

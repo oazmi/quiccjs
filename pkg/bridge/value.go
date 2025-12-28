@@ -103,7 +103,6 @@ func (val *Value) IsUninitialized() bool { return val != nil && C.JS_IsUninitial
 func (val *Value) IsString() bool        { return val != nil && C.JS_IsString(val.ref) == 1 }
 func (val *Value) IsSymbol() bool        { return val != nil && C.JS_IsSymbol(val.ref) == 1 }
 func (val *Value) IsObject() bool        { return val != nil && C.JS_IsObject(val.ref) == 1 }
-func (val *Value) IsArray() bool         { return val != nil && C.JS_IsArray(val.ctx.ref, val.ref) == 1 }
 func (val *Value) IsError() bool         { return val != nil && C.JS_IsError(val.ctx.ref, val.ref) == 1 }
 func (val *Value) IsFunction() bool      { return val != nil && C.JS_IsFunction(val.ctx.ref, val.ref) == 1 }
 func (val *Value) IsConstructor() bool {
@@ -305,4 +304,17 @@ func (val *Value) ToFloat64() float64 {
 	cval := C.double(0)
 	C.JS_ToFloat64(val.ctx.ref, &cval, val.ref)
 	return float64(cval)
+}
+
+//------        SYMBOLS        ------//
+
+// create a new javascript `Symbol` with an optional javascript string description.
+// if you don't want any description, simply enter `nil` for it.
+//
+// @should-free
+func (ctx *Context) NewSymbol(js_string_description *Value) *Value {
+	if js_string_description == nil {
+		return ctx.valueCache.symbol.Call(nil)
+	}
+	return ctx.valueCache.symbol.Call(nil, js_string_description)
 }
