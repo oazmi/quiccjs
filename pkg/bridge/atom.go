@@ -23,6 +23,14 @@ func (atom *Atom) Free() {
 	C.JS_FreeAtom(atom.ctx.ref, atom.ref)
 }
 
+// decrements the reference count of a quickjs [Atom] object _when_ its [Context] exits/frees up (i.e. when [Context.Free] is called).
+//
+// this is opposed to freeing up the value _immediately_ via [Atom.Free].
+// it is intended for cached value properties, such as `length` and `size`.
+func (atom *Atom) FreeOnExit() {
+	atom.ctx.atomFreeupList = append(atom.ctx.atomFreeupList, atom)
+}
+
 // create a new quickjs atom from a given go-string.
 // don't forget to free up atoms after you are done using them.
 //

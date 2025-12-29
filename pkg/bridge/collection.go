@@ -22,7 +22,8 @@ import (
 type TypedArrayEnum int // super set of `C.JSTypedArrayEnum`
 
 const (
-	TypedArrayInvalid   TypedArrayEnum = -1
+	TypedArrayInvalid   TypedArrayEnum = -2
+	TypedArrayAny       TypedArrayEnum = -1
 	TypedArrayUint8C    TypedArrayEnum = C.JS_TYPED_ARRAY_UINT8C
 	TypedArrayInt8      TypedArrayEnum = C.JS_TYPED_ARRAY_INT8
 	TypedArrayUint8     TypedArrayEnum = C.JS_TYPED_ARRAY_UINT8
@@ -39,39 +40,42 @@ const (
 
 // test if your value is an instance of an `ArrayBuffer`.
 func (arr *Value) IsArrayBuffer() bool {
-	return arr.Instanceof(arr.ctx.valueCache.arrayBuffer)
+	return arr.IsInstanceOf(arr.ctx.valueCache.arrayBuffer)
 }
 
 // test if your value is an instance of a certain kind of `TypedArray`, specified by the `kind“ ([TypedArrayEnum]) enum option.
+// if you would like to check if your value is _any_ kind of typed array, use the [TypedArrayAny] enum option (`-1`).
 //
 // make sure **not** to use [TypedArrayInvalid] for the `kind` parameter, otherwise the function will `panic`.
 func (arr *Value) IsTypedArray(kind TypedArrayEnum) bool {
 	cache := arr.ctx.valueCache
 	switch kind {
+	case TypedArrayAny:
+		return arr.IsInstanceOf(cache.typedArray)
 	case TypedArrayUint8C:
-		return arr.Instanceof(cache.uint8ClampedArray)
+		return arr.IsInstanceOf(cache.uint8ClampedArray)
 	case TypedArrayInt8:
-		return arr.Instanceof(cache.int8Array)
+		return arr.IsInstanceOf(cache.int8Array)
 	case TypedArrayUint8:
-		return arr.Instanceof(cache.uint8Array)
+		return arr.IsInstanceOf(cache.uint8Array)
 	case TypedArrayInt16:
-		return arr.Instanceof(cache.int16Array)
+		return arr.IsInstanceOf(cache.int16Array)
 	case TypedArrayUint16:
-		return arr.Instanceof(cache.uint16Array)
+		return arr.IsInstanceOf(cache.uint16Array)
 	case TypedArrayInt32:
-		return arr.Instanceof(cache.int32Array)
+		return arr.IsInstanceOf(cache.int32Array)
 	case TypedArrayUint32:
-		return arr.Instanceof(cache.uint32Array)
+		return arr.IsInstanceOf(cache.uint32Array)
 	case TypedArrayBigInt64:
-		return arr.Instanceof(cache.bigInt64Array)
+		return arr.IsInstanceOf(cache.bigInt64Array)
 	case TypedArrayBigUint64:
-		return arr.Instanceof(cache.bigUint64Array)
+		return arr.IsInstanceOf(cache.bigUint64Array)
 	case TypedArrayFloat16:
-		return arr.Instanceof(cache.float16Array)
+		return arr.IsInstanceOf(cache.float16Array)
 	case TypedArrayFloat32:
-		return arr.Instanceof(cache.float32Array)
+		return arr.IsInstanceOf(cache.float32Array)
 	case TypedArrayFloat64:
-		return arr.Instanceof(cache.float64Array)
+		return arr.IsInstanceOf(cache.float64Array)
 	default:
 		panic(fmt.Sprintf(`[Value.IsTypedArray]: received an invalid enum for the "kind" of typed array: "%d"`, kind))
 	}
@@ -79,43 +83,43 @@ func (arr *Value) IsTypedArray(kind TypedArrayEnum) bool {
 
 // identifies the _kind_ ([TypedArrayEnum]) of your javascript typed array object.
 //
-// if your object is _not_ an instance of a `TypedArray`, then `-1` ([TypedArrayInvalid]) will be returned.
+// if your object is _not_ an instance of a `TypedArray`, then `-2` ([TypedArrayInvalid]) will be returned.
 func (arr *Value) IdentifyTypedArray() TypedArrayEnum {
 	cache := arr.ctx.valueCache
-	if arr.Instanceof(cache.uint8ClampedArray) {
+	if arr.IsInstanceOf(cache.uint8ClampedArray) {
 		return TypedArrayUint8C
 	}
-	if arr.Instanceof(cache.int8Array) {
+	if arr.IsInstanceOf(cache.int8Array) {
 		return TypedArrayInt8
 	}
-	if arr.Instanceof(cache.uint8Array) {
+	if arr.IsInstanceOf(cache.uint8Array) {
 		return TypedArrayUint8
 	}
-	if arr.Instanceof(cache.int16Array) {
+	if arr.IsInstanceOf(cache.int16Array) {
 		return TypedArrayInt16
 	}
-	if arr.Instanceof(cache.uint16Array) {
+	if arr.IsInstanceOf(cache.uint16Array) {
 		return TypedArrayUint16
 	}
-	if arr.Instanceof(cache.int32Array) {
+	if arr.IsInstanceOf(cache.int32Array) {
 		return TypedArrayInt32
 	}
-	if arr.Instanceof(cache.uint32Array) {
+	if arr.IsInstanceOf(cache.uint32Array) {
 		return TypedArrayUint32
 	}
-	if arr.Instanceof(cache.bigInt64Array) {
+	if arr.IsInstanceOf(cache.bigInt64Array) {
 		return TypedArrayBigInt64
 	}
-	if arr.Instanceof(cache.bigUint64Array) {
+	if arr.IsInstanceOf(cache.bigUint64Array) {
 		return TypedArrayBigUint64
 	}
-	if arr.Instanceof(cache.float16Array) {
+	if arr.IsInstanceOf(cache.float16Array) {
 		return TypedArrayFloat16
 	}
-	if arr.Instanceof(cache.float32Array) {
+	if arr.IsInstanceOf(cache.float32Array) {
 		return TypedArrayFloat32
 	}
-	if arr.Instanceof(cache.float64Array) {
+	if arr.IsInstanceOf(cache.float64Array) {
 		return TypedArrayFloat64
 	}
 	return TypedArrayInvalid
@@ -317,10 +321,10 @@ func (arr *Value) ToByteArrayShared() []byte {
 //------      TYPE CHECKS      ------//
 
 func (val *Value) IsArray() bool   { return val != nil && C.JS_IsArray(val.ctx.ref, val.ref) == 1 }
-func (val *Value) IsHashMap() bool { return val.Instanceof(val.ctx.valueCache.hashMap) }
-func (val *Value) IsHashSet() bool { return val.Instanceof(val.ctx.valueCache.hashSet) }
-func (val *Value) IsWeakMap() bool { return val.Instanceof(val.ctx.valueCache.weakMap) }
-func (val *Value) IsWeakSet() bool { return val.Instanceof(val.ctx.valueCache.weakSet) }
+func (val *Value) IsHashMap() bool { return val.IsInstanceOf(val.ctx.valueCache.hashMap) }
+func (val *Value) IsHashSet() bool { return val.IsInstanceOf(val.ctx.valueCache.hashSet) }
+func (val *Value) IsWeakMap() bool { return val.IsInstanceOf(val.ctx.valueCache.weakMap) }
+func (val *Value) IsWeakSet() bool { return val.IsInstanceOf(val.ctx.valueCache.weakSet) }
 
 //------     CONSTRUCTION      ------//
 
@@ -374,3 +378,26 @@ func (ctx *Context) NewWeakSet() *Value {
 //------      CONVERSION       ------//
 
 // TODO: I'm getting bored now
+
+//------        METHODS        ------//
+
+// returns the length of the javascript collection object, depending on its kind:
+// - `Array` and `TypedArray` types will have their `length` property returned.
+// - `ArrayBuffer` type will its `byteLength` property returned.
+// - `Map` and `Set` types will their `size` property returned.
+func (val *Value) Len() uint {
+	var prop_atom *Atom = nil
+	if val.IsArray() || val.IsTypedArray(TypedArrayAny) {
+		prop_atom = val.ctx.atomCache.length
+	} else if val.IsArrayBuffer() {
+		prop_atom = val.ctx.atomCache.byteLength
+	} else if val.IsHashMap() || val.IsHashSet() {
+		prop_atom = val.ctx.atomCache.size
+	}
+	if prop_atom != nil {
+		js_prop := val.GetAtom(prop_atom)
+		defer js_prop.Free()
+		return uint(js_prop.ToUint32())
+	}
+	panic(`[Value.Len]: the provided value lacks a length property. make sure that it is an instance of one of the following types: "Array", "TypedArray", "ArrayBuffer", "Map", or "Set".`)
+}

@@ -66,7 +66,7 @@ func (val *Value) Free() {
 // it is intended for long lived objects, such as polyfills (like `fetch`, `TextEncoder`, etc...),
 // that should be freed upon the context's destruction.
 func (val *Value) FreeOnExit() {
-	val.ctx.freeUpList = append(val.ctx.freeUpList, val)
+	val.ctx.valueFreeupList = append(val.ctx.valueFreeupList, val)
 }
 
 // increments the reference count of a javascript object and duplicates its [Value] wrapper.

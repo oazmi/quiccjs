@@ -12,10 +12,18 @@ import (
 )
 
 type Context struct {
-	rt         *Runtime
-	ref        *C.JSContext
-	valueCache contextValueCache
-	freeUpList []*Value
+	rt              *Runtime
+	ref             *C.JSContext
+	atomCache       contextAtomCache
+	valueCache      contextValueCache
+	atomFreeupList  []*Atom
+	valueFreeupList []*Value
+}
+
+type contextAtomCache struct {
+	length     *Atom
+	size       *Atom
+	byteLength *Atom
 }
 
 type contextValueCache struct {
@@ -33,6 +41,7 @@ type contextValueCache struct {
 	weakSet *Value
 	// typed arrays and buffers
 	arrayBuffer       *Value
+	typedArray        *Value
 	uint8Array        *Value
 	uint16Array       *Value
 	uint32Array       *Value
@@ -52,14 +61,17 @@ func (rt *Runtime) NewContext() *Context {
 		return nil
 	}
 	ctx := &Context{
-		ref:        C.JS_NewContext(rt.ref),
-		rt:         rt,
-		valueCache: contextValueCache{},
-		freeUpList: []*Value{},
+		ref:             C.JS_NewContext(rt.ref),
+		rt:              rt,
+		atomCache:       contextAtomCache{},
+		valueCache:      contextValueCache{},
+		atomFreeupList:  []*Atom{},
+		valueFreeupList: []*Value{},
 	}
 	if ctx.ref == nil {
 		return nil
 	}
+	ctx.injectAtomCache()
 	ctx.injectValueCache()
 	// TODO: I'm unsure if we should be cleaning it up automatically, or if it should be the end user's responsibility.
 	runtime.AddCleanup(ctx, (*Context).Free, nil)
@@ -68,12 +80,26 @@ func (rt *Runtime) NewContext() *Context {
 
 func (ctx *Context) Free() {
 	if ctx.ref != nil {
-		for _, val := range ctx.freeUpList {
+		for _, val := range ctx.valueFreeupList {
 			val.Free()
 		}
 		C.JS_FreeContext(ctx.ref)
 		ctx.ref = nil
 	}
+}
+
+func (ctx *Context) injectAtomCache() {
+	create_atom := func(atom_name string) *Atom {
+		atom := ctx.NewAtom(atom_name)
+		if atom != nil {
+			atom.FreeOnExit()
+			return atom
+		}
+		panic(fmt.Sprintf(`[Context.injectAtomCache]: failed to create a string atom for: "%s".`, atom_name))
+	}
+	ctx.atomCache.length = create_atom("length")
+	ctx.atomCache.size = create_atom("size")
+	ctx.atomCache.byteLength = create_atom("byteLength")
 }
 
 func (ctx *Context) injectValueCache() {
@@ -114,6 +140,8 @@ func (ctx *Context) injectValueCache() {
 	ctx.valueCache.float16Array = get_obj("Float16Array")
 	ctx.valueCache.float32Array = get_obj("Float32Array")
 	ctx.valueCache.float64Array = get_obj("Float64Array")
+	ctx.valueCache.typedArray = ctx.valueCache.uint8Array.GetPrototypeOf()
+	ctx.valueCache.typedArray.FreeOnExit()
 }
 
 type js_EVAL_TYPE int // `0` or `1`

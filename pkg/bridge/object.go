@@ -141,7 +141,7 @@ func (obj *Value) CallMethod(method_name string, args ...*Value) *Value {
 // TODO implement typeof, either here or inside `./value.go`.
 
 // check if an object `obj` is an instance of a class constructor `cls`.
-func (obj *Value) Instanceof(cls *Value) bool {
+func (obj *Value) IsInstanceOf(cls *Value) bool {
 	if obj == nil || cls == nil || cls.IsUndefined() {
 		return false
 	}
@@ -150,5 +150,11 @@ func (obj *Value) Instanceof(cls *Value) bool {
 	if success >= 0 {
 		return success == 1
 	}
-	panic(`[Value.Instanceof]: checking for "instanceof" resulted in an exception.`)
+	panic(`[Value.IsInstanceOf]: checking for "instanceof" resulted in an exception.`)
+}
+
+// get the prototype object of a javascript object.
+func (obj *Value) GetPrototypeOf() *Value {
+	ref := C.JS_GetPrototype(obj.ctx.ref, obj.ref)
+	return &Value{ctx: obj.ctx, ref: ref}
 }
