@@ -31,6 +31,20 @@ func (atom *Atom) FreeOnExit() {
 	atom.ctx.atomFreeupList = append(atom.ctx.atomFreeupList, atom)
 }
 
+// increments the reference count of a quickjs [Atom] object, and duplicates its [Atom] wrapper.
+//
+// it is quite rare for this method to be used outside of the internal library logic,
+// so be sure that your logic is sound if you're using this method.
+//
+// to decrement the reference count, use the [Atom.Free] method.
+func (atom *Atom) Dupe() *Atom {
+	// the operation only takes place on non-nil atom and contexts.
+	if atom == nil || atom.ctx == nil {
+		return nil
+	}
+	return &Atom{ctx: atom.ctx, ref: C.JS_DupAtom(atom.ctx.ref, atom.ref)}
+}
+
 // create a new quickjs atom from a given go-string.
 // don't forget to free up atoms after you are done using them.
 //
@@ -57,11 +71,23 @@ func (atom *Atom) ToString() string {
 }
 
 // returns the javascript [Value] representation of the atomic property.
-// it can either be a `number` or a `string` javascript value.
+// it can either be a `number`-based, a `string`-based, or a `symbol`-based javascript value.
 //
 // @should-free
 func (atom *Atom) ToValue() *Value {
 	return &Value{ctx: atom.ctx, ref: C.JS_AtomToValue(atom.ctx.ref, atom.ref)}
+}
+
+// converts the primitive javascript [Value] property key to its of the [Atom]ic representation.
+// this might be the only way to convert a javascript `symbol` to an [Atom] to use for property acquisition.
+//
+// @should-free
+func (val *Value) ToAtom() *Atom {
+	atom_ref := C.JS_ValueToAtom(val.ctx.ref, val.ref)
+	if atom_ref == C.JS_ATOM_NULL {
+		panic("[Value.ToAtom]: failed to convert the provided value to an atom, possibly because the value is not a valid property key (i.e. neither a number, nor a string, nor a symbol).")
+	}
+	return &Atom{ctx: val.ctx, ref: atom_ref}
 }
 
 // set a javascript `Object`'s atomic property `prop_atom` to a certain value `val`.
