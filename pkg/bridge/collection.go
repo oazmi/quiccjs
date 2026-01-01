@@ -8,7 +8,7 @@ package bridge
 //---- TYPEDARRAY: SHARED BUFFER ----//
 
 // forward declaration of the of the shared-buffer-freeing callback function, otherwise the compiler won't discover it.
-extern void sharedArrayBufferFreeFunc(JSRuntime* rt, void* opaque_handle, void* first_byte_ptr);
+JSFreeArrayBufferDataFunc sharedArrayBufferFreeFunc;
 */
 import "C"
 import (
@@ -151,7 +151,7 @@ func (arr *Value) IdentifyTypedArrayInfo() TypedArrayInfo {
 		return TypedArrayInfo{
 			Buffer:          buffer,
 			ByteOffset:      uint(byte_offset),
-			ByteLength:      uint(byte_offset),
+			ByteLength:      uint(byte_length),
 			BytesPerElement: uint(bytes_per_element),
 		}
 	}
@@ -248,7 +248,7 @@ func (ctx *Context) NewArrayBufferShared(raw_data []byte) *Value {
 	pinner.Pin(first_byte_ptr)
 	js_arr_ref := C.JS_NewArrayBuffer(
 		ctx.ref, (*C.uint8_t)(first_byte_ptr), C.size_t(raw_data_len),
-		(*C.JSFreeArrayBufferDataFunc)(C.sharedArrayBufferFreeFunc), unsafe.Pointer(pinner), (C.JS_BOOL)(1),
+		&C.sharedArrayBufferFreeFunc, unsafe.Pointer(pinner), (C.JS_BOOL)(1),
 	)
 	js_arr := &Value{ctx: ctx, ref: js_arr_ref}
 	// memory free up trajectory: `js_arr.Free()` -> `C.JS_FreeValue(...)` -> `C.sharedArrayBufferFreeFunc(...)` -> `sharedArrayBufferFreeFunc(...)` -> done
