@@ -25,6 +25,13 @@ import (
 	unsafe "unsafe"
 )
 
+// create a new empty javascript `Object`.
+//
+// @should-free
+func (ctx *Context) NewObject() *Value {
+	return &Value{ctx: ctx, ref: C.JS_NewObject(ctx.ref)}
+}
+
 // set a javascript `Object`'s property `prop` to a certain value `val`.
 //
 // since the host object will take ownership of the `val` (i.e. it will free it automatically upon the host's destruction),

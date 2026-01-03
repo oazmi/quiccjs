@@ -12,8 +12,8 @@ import "C"
 // the signature of this method mimics javascript's `Function.prototype.bind(thisArg, ...args)` method.
 // except, you must always provide the first argument.
 // in case there is no `this` object that needs to be referenced by your function, simply set the `this` argument to `nil`.
-func (fn *Value) Bind(this *Value, default_args ...*Value) func(args ...*Value) *Value {
-	ctx := fn.ctx
+func (fun *Value) Bind(this *Value, default_args ...*Value) func(args ...*Value) *Value {
+	ctx := fun.ctx
 	if this == nil {
 		this = ctx.NewUndefined()
 	}
@@ -35,7 +35,7 @@ func (fn *Value) Bind(this *Value, default_args ...*Value) func(args ...*Value) 
 		if (default_args_len + args_len) > 0 {
 			first_js_arg_ptr = &js_args[0]
 		}
-		result_ref := C.JS_Call(ctx.ref, fn.ref, this.ref, C.int(default_args_len), first_js_arg_ptr)
+		result_ref := C.JS_Call(ctx.ref, fun.ref, this.ref, C.int(default_args_len), first_js_arg_ptr)
 		return &Value{ctx: ctx, ref: result_ref}
 	}
 }
@@ -45,40 +45,23 @@ func (fn *Value) Bind(this *Value, default_args ...*Value) func(args ...*Value) 
 // the signature of this method mimics javascript's `Function.prototype.call(thisArg, ...args)` method.
 // except, you must always provide the first argument.
 // in case there is no `this` object that needs to be referenced by your function, simply set the `this` argument to `nil`.
-func (fn *Value) Call(this *Value, args ...*Value) *Value {
-	ctx := fn.ctx
+func (fun *Value) Call(this *Value, args ...*Value) *Value {
+	ctx := fun.ctx
+	var this_ref C.JSValue
 	if this == nil {
-		this = ctx.NewUndefined()
+		this_ref = C.JS_UNDEFINED
+	} else {
+		this_ref = this.ref
 	}
-	args_len := len(args)
-	// we pre-allocate the slice below to ensure a contiguous block of memory is allocated to the slice,
-	// otherwise quickjs will not be able to index elements that are not in the continuous region (i.e. memory corruption).
-	js_args := make([]C.JSValue, args_len)
-	for i, js_arg := range args {
-		js_args[i] = js_arg.ref
-	}
-	var first_js_arg_ptr *C.JSValue = nil
-	if args_len > 0 {
-		first_js_arg_ptr = &js_args[0]
-	}
-	result_ref := C.JS_Call(ctx.ref, fn.ref, this.ref, C.int(args_len), first_js_arg_ptr)
+	args_len, first_js_arg_ptr := ctx.valuesToCValues(args)
+	result_ref := C.JS_Call(ctx.ref, fun.ref, this_ref, args_len, first_js_arg_ptr)
 	return &Value{ctx: ctx, ref: result_ref}
 }
 
 // execute a class's constructor with the given arguments to produce a class instance.
 func (cls *Value) CallConstructor(args ...*Value) *Value {
 	ctx := cls.ctx
-	args_len := len(args)
-	// we pre-allocate the slice below to ensure a contiguous block of memory is allocated to the slice,
-	// otherwise quickjs will not be able to index elements that are not in the continuous region (i.e. memory corruption).
-	js_args := make([]C.JSValue, args_len)
-	var first_js_arg_ptr *C.JSValue = nil
-	for i, js_arg := range args {
-		js_args[i] = js_arg.ref
-	}
-	if args_len > 0 {
-		first_js_arg_ptr = &js_args[0]
-	}
-	result_ref := C.JS_CallConstructor(ctx.ref, cls.ref, C.int(args_len), first_js_arg_ptr)
+	args_len, first_js_arg_ptr := ctx.valuesToCValues(args)
+	result_ref := C.JS_CallConstructor(ctx.ref, cls.ref, args_len, first_js_arg_ptr)
 	return &Value{ctx: ctx, ref: result_ref}
 }
