@@ -31,13 +31,13 @@ import (
 
 // this represents a quickjs javascript value.
 //
-//   - since quickjs uses reference counting for garbage collection, make sure to always call the [Free]
+//   - since quickjs uses reference counting for garbage collection, make sure to always call the [Value.Free]
 //     method when a javascript object is going out of scope to decrement its reference counting.
 //   - do note that only "complex" c-objects need to be freed.
 //     `number`, `null`, `undefined`, and `boolean` do not need to be freed.
 //     but `string`s, `Object`s, `Array`s, `Promise`s, `Function`s, etc... all need to be freed up.
 //   - moreover, when you create/duplicate a new reference to the same jsvalue,
-//     you should use the [Dupe] method to increment to increment the reference counting.
+//     you should use the [Value.Dupe] method to increment to increment the reference counting.
 type Value struct {
 	// reference to the `Context` hosting this value.
 	ctx *Context
