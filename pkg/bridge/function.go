@@ -6,6 +6,9 @@ package bridge
 #include "./include0_quickjs.h"
 */
 import "C"
+import (
+	runtime "runtime"
+)
 
 // bind a javascript function to some default arguments.
 //
@@ -53,15 +56,67 @@ func (fun *Value) Call(this *Value, args ...*Value) *Value {
 	} else {
 		this_ref = this.ref
 	}
-	args_len, first_js_arg_ptr := ctx.valuesToCValues(args)
+
+	// inlined logic of `Context.valuesToCValues()`, because we don't want the returned slice to be allocated on the heap instead of the stack.
+	// a slice "escapes" to the heap when its lifetime extends beyond the function that created it.
+	// inline start
+	args_len := C.int(len(args))
+	var stack_allocated_args [max_stack_js_args]C.JSValue
+	var heap_allocated_args []C.JSValue
+	var first_js_arg_ptr *C.JSValue = nil
+	if args_len == 0 {
+	} else if args_len <= max_stack_js_args {
+		for i, js_arg := range args {
+			stack_allocated_args[i] = js_arg.ref
+		}
+		first_js_arg_ptr = &stack_allocated_args[0]
+	} else {
+		heap_allocated_args = make([]C.JSValue, args_len)
+		for i, js_arg := range args {
+			heap_allocated_args[i] = js_arg.ref
+		}
+		first_js_arg_ptr = &heap_allocated_args[0]
+	}
+	// inline end
+
 	result_ref := C.JS_Call(ctx.ref, fun.ref, this_ref, args_len, first_js_arg_ptr)
+	// tell the compiler that the allocated slices should live up to this point at least,
+	// so that go does not free them while quick js is using them.
+	runtime.KeepAlive(stack_allocated_args)
+	runtime.KeepAlive(heap_allocated_args)
 	return &Value{ctx: ctx, ref: result_ref}
 }
 
 // execute a class's constructor with the given arguments to produce a class instance.
 func (cls *Value) CallConstructor(args ...*Value) *Value {
 	ctx := cls.ctx
-	args_len, first_js_arg_ptr := ctx.valuesToCValues(args)
+
+	// inlined logic of `Context.valuesToCValues()`, because we don't want the returned slice to be allocated on the heap instead of the stack.
+	// a slice "escapes" to the heap when its lifetime extends beyond the function that created it.
+	// inline start
+	args_len := C.int(len(args))
+	var stack_allocated_args [max_stack_js_args]C.JSValue
+	var heap_allocated_args []C.JSValue
+	var first_js_arg_ptr *C.JSValue = nil
+	if args_len == 0 {
+	} else if args_len <= max_stack_js_args {
+		for i, js_arg := range args {
+			stack_allocated_args[i] = js_arg.ref
+		}
+		first_js_arg_ptr = &stack_allocated_args[0]
+	} else {
+		heap_allocated_args = make([]C.JSValue, args_len)
+		for i, js_arg := range args {
+			heap_allocated_args[i] = js_arg.ref
+		}
+		first_js_arg_ptr = &heap_allocated_args[0]
+	}
+	// inline end
+
 	result_ref := C.JS_CallConstructor(ctx.ref, cls.ref, args_len, first_js_arg_ptr)
+	// tell the compiler that the allocated slices should live up to this point at least,
+	// so that go does not free them while quick js is using them.
+	runtime.KeepAlive(stack_allocated_args)
+	runtime.KeepAlive(heap_allocated_args)
 	return &Value{ctx: ctx, ref: result_ref}
 }
